@@ -14,7 +14,7 @@ function notify(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show
 function fmt(t){if(!Number.isFinite(t))return'0:00';const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+String(s).padStart(2,'0')}
 function lines(){return (current?.lyrics||'').split('\n')}
 function showView(name){$$('.view').forEach(v=>v.classList.remove('active'));$('#'+name+'View').classList.add('active');$$('.nav-item[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$('#crumb').textContent=({library:'Your library',studio:'Lyric studio',karaoke:'Karaoke mode',settings:'Settings'})[name]||name;if(name==='karaoke')renderKaraoke()}
-function persistCurrent(){if(!current)return;current.lyrics=lyricsInput.value;current.updatedAt=Date.now();putSong(current).then(()=>{songs=songs.map(s=>s.id===current.id?current:s);renderLibrary()}).catch(()=>notify('Could not save. Check browser storage.'))}
+function persistCurrent(){if(!current)return;current.lyrics=lyricsInput.value;current.updatedAt=Date.now();putSong(current).then(()=>{songs=songs.map(s=>s.id===current.id?current:s);renderLibrary();renderLineCount()}).catch(()=>notify('Could not save. Check browser storage.'))}
 let saveTimer;
 function scheduleSave(){if(!current)return;current.lyrics=lyricsInput.value;renderLineCount();renderKaraoke();clearTimeout(saveTimer);saveTimer=setTimeout(persistCurrent,500)}
 function renderLineCount(){const ls=lines();$('#lineCount').textContent=ls.length+' LINES';const n=ls.filter((_,i)=>current?.timings?.[i]!=null).length;$('#timedCount').textContent=n+' / '+ls.length;renderTiming()}
