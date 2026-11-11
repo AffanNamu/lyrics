@@ -1,0 +1,24 @@
+{
+  "name": "LYRICS — Your Private Music Studio",
+  "short_name": "LYRICS",
+  "description": "An offline-first music and synchronized lyrics studio.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090b12",
+  "theme_color": "#090b12",
+  "categories": [
+    "music",
+    "productivity",
+    "multimedia"
+  ],
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
