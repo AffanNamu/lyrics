@@ -142,7 +142,7 @@ class _StudioHomeState extends State<StudioHome> {
       p.durationMs = durationMs;
       final preset = activeTheme;
       final accent = preset.accent;
-      final rgb = '${accent.blue.toRadixString(16).padLeft(2, '0')}${accent.green.toRadixString(16).padLeft(2, '0')}${accent.red.toRadixString(16).padLeft(2, '0')}'.toUpperCase();
+      final rgb = '${(accent.b * 255).round().toRadixString(16).padLeft(2, '0')}${(accent.g * 255).round().toRadixString(16).padLeft(2, '0')}${(accent.r * 255).round().toRadixString(16).padLeft(2, '0')}'.toUpperCase();
       String stamp(int ms) {
         final cs = ms ~/ 10;
         return '${cs ~/ 360000}:${((cs ~/ 6000) % 60).toString().padLeft(2, '0')}:${((cs ~/ 100) % 60).toString().padLeft(2, '0')}.${(cs % 100).toString().padLeft(2, '0')}';
@@ -174,8 +174,8 @@ class _StudioHomeState extends State<StudioHome> {
       await assFile.writeAsString(ass.toString());
       final bg = preset.colors.first;
       final accentBg = preset.colors[1];
-      final bgHex = '0x${bg.red.toRadixString(16).padLeft(2, '0')}${bg.green.toRadixString(16).padLeft(2, '0')}${bg.blue.toRadixString(16).padLeft(2, '0')}';
-      final accentHex = '0x${accentBg.red.toRadixString(16).padLeft(2, '0')}${accentBg.green.toRadixString(16).padLeft(2, '0')}${accentBg.blue.toRadixString(16).padLeft(2, '0')}';
+      final bgHex = '0x${(bg.r * 255).round().toRadixString(16).padLeft(2, '0')}${(bg.g * 255).round().toRadixString(16).padLeft(2, '0')}${(bg.b * 255).round().toRadixString(16).padLeft(2, '0')}';
+      final accentHex = '0x${(accentBg.r * 255).round().toRadixString(16).padLeft(2, '0')}${(accentBg.g * 255).round().toRadixString(16).padLeft(2, '0')}${(accentBg.b * 255).round().toRadixString(16).padLeft(2, '0')}';
       String esc(String value) => value.replaceAll('\\', '/').replaceAll(':', r'\:').replaceAll("'", r"\'");
       final seconds = (durationMs / 1000).toStringAsFixed(2);
       final output = '${exportDir.path}/${p.id}_${DateTime.now().millisecondsSinceEpoch}.mp4';
