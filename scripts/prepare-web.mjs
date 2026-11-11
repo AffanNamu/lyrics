@@ -1,8 +1,10 @@
+// Copies the self-contained web app into www/ for the Capacitor Android build. No bundler, no network assets.
 import { cp, mkdir, rm } from 'node:fs/promises';
 
-const files = ['index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'sw.js'];
+const files = ['index.html', 'styles.css', 'manifest.webmanifest', 'sw.js'];
+const dirs = ['js', 'vendor', 'fonts', 'assets'];
 await rm('www', { recursive: true, force: true });
-await mkdir('www/assets', { recursive: true });
-for (const file of files) await cp(file, `www/${file}`);
-await cp('assets', 'www/assets', { recursive: true });
+await mkdir('www', { recursive: true });
+for (const f of files) await cp(f, `www/${f}`);
+for (const d of dirs) await cp(d, `www/${d}`, { recursive: true });
 console.log('Prepared fully local web assets for the Android application.');

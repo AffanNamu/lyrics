@@ -1,16 +1,16 @@
 {
-  "name": "LYRICS — Your Private Music Studio",
+  "name": "LYRICS Studio — offline video & lyric editor",
   "short_name": "LYRICS",
-  "description": "An offline-first music and synchronized lyrics studio.",
+  "description": "Edit video, add synced lyrics and animated templates. Fully offline, no account.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#090b12",
-  "theme_color": "#090b12",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
   "categories": [
+    "video",
     "music",
-    "productivity",
     "multimedia"
   ],
   "icons": [

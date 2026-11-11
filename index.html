@@ -3,60 +3,85 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090b12">
-<meta name="description" content="A private, offline-first music and lyric studio.">
-<title>LYRICS — Your music, your words</title>
+<meta name="theme-color" content="#0b0c10">
+<meta name="description" content="Offline video editor with animated lyric templates. No account, no upload.">
+<title>LYRICS Studio — offline video &amp; lyric editor</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="brand" href="#" aria-label="Lyrics home"><span class="brand-mark">L<span>✳</span></span><span>LYRICS<small>YOUR PRIVATE STUDIO</small></span></a>
-    <div class="side-label">WORKSPACE</div>
-    <button class="nav-item active" data-view="library"><span>▦</span> Your library <kbd>⌘ 1</kbd></button>
-    <button class="nav-item" data-view="studio"><span>✎</span> Lyric studio <kbd>⌘ 2</kbd></button>
-    <button class="nav-item" data-view="karaoke"><span>◉</span> Karaoke mode <kbd>⌘ 3</kbd></button>
-    <div class="side-label collection-label">COLLECTION <button id="newCollection" title="New collection">＋</button></div>
-    <div id="collections" class="collections"><span class="muted tiny">Your collections appear here</span></div>
-    <div class="sidebar-bottom"><div class="offline-indicator"><i></i><span><b>Offline ready</b><small>Your work stays on this device</small></span></div><button class="nav-item" data-view="settings"><span>⚙</span> Settings</button></div>
-  </aside>
 
-  <main class="main">
-    <header class="topbar"><div class="breadcrumb"><span>WORKSPACE</span><b>/</b><strong id="crumb">Your library</strong></div><div class="top-actions"><span class="privacy-pill"><i></i> PRIVATE & LOCAL</span><button class="icon-btn" id="helpBtn" aria-label="Help">?</button><button class="avatar">L</button></div></header>
-
-    <section class="view active" id="libraryView">
-      <div class="welcome-row"><div><p class="eyebrow">YOUR SOUND. YOUR STORY.</p><h1>A space for <em>every</em> word.</h1><p class="subhead">Bring your music in. Give every line its moment.</p></div><button class="primary-btn" id="importBtn"><span>＋</span> Import a song</button><input id="audioInput" type="file" accept="audio/*" hidden></div>
-      <div class="hero-card"><div class="hero-glow"></div><div class="hero-content"><span class="overline">THE LYRIC STUDIO</span><h2>Feel the music.<br><em>See every word.</em></h2><p>Your personal space to shape lyrics, find the rhythm, and make every song yours.</p><button class="light-btn" id="startWriting">Start creating <span>↗</span></button></div><div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="disc"><div class="disc-label">L<span>✳</span></div></div><div class="floating-note note-one">♪</div><div class="floating-note note-two">♫</div><div class="sound-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
-      <div class="section-heading"><div><p class="eyebrow">ALL YOUR MUSIC</p><h2>Your library <span id="songCount" class="count">0</span></h2></div><div class="library-tools"><label class="search-box">⌕ <input id="searchInput" placeholder="Find a song..." aria-label="Search songs"></label><button class="sort-btn" id="sortBtn">Recently added ↕</button></div></div>
-      <div id="songGrid" class="song-grid"><div class="empty-state"><div class="empty-icon">♫</div><h3>Your next favorite starts here.</h3><p>Import an audio file to create your first lyric project. Your music never leaves this device.</p><button class="outline-btn" id="emptyImport">Import your first song</button></div></div>
-    </section>
-
-    <section class="view" id="studioView">
-      <div class="studio-heading"><div><button class="back-link" data-view="library">← Library</button><p class="eyebrow">LYRIC WORKSPACE</p><div class="studio-title-row"><h1 id="studioTitle">Untitled song</h1><button class="rename-btn" id="renameSong" aria-label="Rename song" title="Rename song">✎</button></div><p class="subhead">Write freely. Find your timing. Make it yours.</p></div><div class="studio-actions"><button class="outline-btn" id="exportLrc">↓ Export .LRC</button><button class="primary-btn" id="saveSong">Save changes</button></div></div>
-      <div class="studio-layout">
-        <div class="editor-panel panel"><div class="panel-head"><div><span class="panel-kicker">01 / WORDS</span><h3>Lyrics editor</h3></div><div class="editor-tools"><button class="mini-btn" id="addLine">＋ Add line</button><button class="mini-btn" id="autoSplit">↵ Split lines</button></div></div><div class="editor-hint">One line per lyric. Select a line, then tap <b>Sync line</b> while your song plays.</div><div class="editor-quick-tools"><button class="mini-btn" id="undoLyrics">↶ Undo</button><button class="mini-btn" id="clearLyrics">Clear lyrics</button></div><div id="lyricEditor" class="lyric-editor"><textarea id="lyricsInput" spellcheck="false" placeholder="Start writing your lyrics here...&#10;&#10;Every great song begins with a line."></textarea></div><div class="editor-footer"><span id="lineCount">0 LINES</span><span>Autosaved on this device</span></div></div>
-        <div class="right-column">
-          <div class="player-panel panel"><div class="panel-head"><div><span class="panel-kicker">02 / PLAYBACK</span><h3>Now playing</h3></div><button class="more-btn" id="songMenu">•••</button></div><div class="mini-art" id="miniArt"><span>♫</span></div><div class="artwork-action"><button class="text-btn" id="changeCover">＋ Change artwork</button><input id="coverInput" type="file" accept="image/*" hidden></div><div class="track-meta"><b id="playerTitle">No song selected</b><span id="playerArtist">Import audio to begin</span></div><audio id="audio" preload="metadata"></audio><div class="progress-wrap"><input id="seek" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTime">0:00</span><span id="duration">0:00</span></div></div><div class="player-controls"><button id="rewind" class="control-btn">↶<small>5</small></button><button id="playPause" class="play-btn">▶</button><button id="forward" class="control-btn">↷<small>5</small></button></div><div class="volume-row"><span>♪</span><input id="volume" type="range" min="0" max="1" step=".01" value=".85"><span>♫</span></div><button id="syncLine" class="sync-btn">◎ <span>Sync selected line</span><kbd>SPACE</kbd></button></div>
-          <div class="timing-panel panel"><div class="panel-head"><div><span class="panel-kicker">03 / PRECISION</span><h3>Line timing</h3></div><span class="timing-count" id="timedCount">0 / 0</span></div><div id="timingList" class="timing-list"><div class="muted tiny">Your timed lines will appear here.</div></div><button class="text-btn" id="clearTiming">Clear all timings</button></div>
-        </div>
+<div id="home" class="view">
+  <header class="home-top">
+    <div class="brand"><span class="brand-mark">L</span><span class="brand-text">LYRICS<small>Studio</small></span></div>
+    <span class="pill"><i></i><span id="netState">Works offline</span></span>
+  </header>
+  <main class="home-main">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Offline video editor</p>
+        <h1>Cut it. Join it. <em>Put the words on it.</em></h1>
+        <p class="lead">Trim and combine clips, add your song, sync lyrics and pick an animated template — all on this device. No account, no upload, no internet.</p>
+        <button class="btn primary big" id="newProjectBtn">New project</button>
       </div>
+      <ul class="feats">
+        <li><b>Edit</b><span>Split, trim, reorder, speed, filters, transitions</span></li>
+        <li><b>Lyrics</b><span>Paste, tap to sync, import or export .lrc / .srt</span></li>
+        <li><b>Templates</b><span>12 animated looks with karaoke, neon, typewriter and more</span></li>
+        <li><b>Export</b><span>Rendered on-device up to 1080p</span></li>
+      </ul>
     </section>
-
-    <section class="view karaoke-view" id="karaokeView"><div class="karaoke-top"><button class="back-link" data-view="studio">← Back to studio</button><span class="privacy-pill"><i></i> LOCAL PLAYBACK</span><button class="icon-btn" id="karaokeFullscreen">⛶</button></div><div class="karaoke-stage"><div class="karaoke-orb"></div><p class="eyebrow">SING IT YOUR WAY</p><div id="karaokeLyrics" class="karaoke-lyrics"><span class="karaoke-muted">Your lyrics will appear here.</span></div><div class="karaoke-bottom"><div><b id="karaokeTitle">Untitled song</b><span id="karaokeClock">Ready when you are</span></div><button class="play-btn" id="karaokePlay">▶</button></div></div></section>
-
-    <section class="view" id="settingsView"><div class="settings-heading"><p class="eyebrow">YOUR SPACE, YOUR RULES</p><h1>Settings</h1><p class="subhead">Everything stays yours. Everything stays here.</p></div><div class="settings-grid"><div class="panel settings-card"><span class="panel-kicker">PRIVACY</span><h3>Local by design</h3><p>Your audio, lyrics, artwork and projects are stored in this browser on this device. Nothing is uploaded to a server.</p><div class="setting-row"><span>Offline app shell</span><span class="status-tag">ENABLED</span></div><div class="setting-row"><span>Cloud account</span><span class="status-tag">NOT REQUIRED</span></div></div><div class="panel settings-card"><span class="panel-kicker">STORAGE</span><h3>Your saved work</h3><p id="storageSummary">Your library is stored locally in this browser.</p><button class="outline-btn danger-btn" id="clearLibrary">Delete all local projects</button></div><div class="panel settings-card"><span class="panel-kicker">APPEARANCE</span><h3>Studio atmosphere</h3><div class="theme-options"><button class="theme-choice selected" data-theme="midnight"><i class="theme-dot midnight"></i>Midnight</button><button class="theme-choice" data-theme="violet"><i class="theme-dot violet"></i>Violet</button><button class="theme-choice" data-theme="light"><i class="theme-dot light"></i>Light</button></div></div></div></section>
+    <div class="section-head"><h2>Your projects <span id="projectCount" class="count"></span></h2></div>
+    <div id="projectGrid" class="project-grid"></div>
+    <p id="storageInfo" class="foot"></p>
   </main>
-  <nav class="mobile-nav" aria-label="Main navigation">
-    <button class="mobile-nav-item active" data-view="library"><span>▦</span><small>Library</small></button>
-    <button class="mobile-nav-item" data-view="studio"><span>✎</span><small>Studio</small></button>
-    <button class="mobile-nav-item" data-view="karaoke"><span>◉</span><small>Karaoke</small></button>
-    <button class="mobile-nav-item" data-view="settings"><span>⚙</span><small>Settings</small></button>
-  </nav>
 </div>
+
+<div id="editor" class="view" hidden>
+  <header class="topbar">
+    <button class="icon-btn" id="backBtn" title="Back to projects" aria-label="Back to projects"></button>
+    <input id="projectName" class="name-input" type="text" maxlength="60" aria-label="Project name" spellcheck="false">
+    <span id="saveState" class="save-state">Saved on device</span>
+    <span class="grow"></span>
+    <button class="icon-btn" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
+    <button class="icon-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"></button>
+    <button class="btn primary" id="exportBtn"><span>Export</span></button>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="Tools"></nav>
+  <aside class="panel" id="panel"></aside>
+
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="preview" width="540" height="960"></canvas>
+      <button id="stageEmpty" class="stage-empty"><b>Start by importing</b><span>Add videos, photos or a song</span></button>
+    </div>
+    <div class="transport">
+      <span class="time"><b id="timeNow">0:00.0</b></span>
+      <button class="icon-btn" id="startBtn" title="Go to start" aria-label="Go to start"></button>
+      <button class="play-btn" id="playBtn" aria-label="Play or pause"></button>
+      <button class="icon-btn" id="endBtn" title="Go to end" aria-label="Go to end"></button>
+      <span class="time right"><span id="timeDur">0:00.0</span></span>
+    </div>
+  </section>
+
+  <section class="timeline-wrap">
+    <div class="tl-tools">
+      <button class="tool" id="splitBtn" title="Split at playhead (S)"><span>Split</span></button>
+      <button class="tool" id="dupBtn" title="Duplicate (Ctrl+D)"><span>Duplicate</span></button>
+      <button class="tool" id="delBtn" title="Delete (Del)"><span>Delete</span></button>
+      <button class="tool" id="editBtn" title="Edit selected item"><span>Edit</span></button>
+      <span class="grow"></span>
+      <button class="icon-btn sm" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out"></button>
+      <button class="icon-btn sm" id="zoomInBtn" title="Zoom in" aria-label="Zoom in"></button>
+      <button class="icon-btn sm" id="fitBtn" title="Fit timeline" aria-label="Fit timeline"></button>
+    </div>
+    <div id="timeline" class="timeline"></div>
+  </section>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
-<div class="modal-backdrop" id="modal"><div class="modal panel"><button class="modal-close" id="modalClose">×</button><p class="eyebrow">A LITTLE GUIDANCE</p><h2>Your music, <em>your privacy.</em></h2><p>LYRICS is an offline-first studio. Import audio from your device, write or paste your lyrics, and sync each line while the track plays. Your projects are saved in this browser using local storage technology.</p><p><b>Tip:</b> Select a lyric line and press the space bar while the song plays to timestamp it. Export an .LRC file to use synchronized lyrics in compatible players.</p><button class="primary-btn" id="gotIt">Got it</button></div></div>
-<script src="app.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
