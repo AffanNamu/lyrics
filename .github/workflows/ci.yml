@@ -1,0 +1,25 @@
+name: Validate Lyrics Studio
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check application JavaScript
+        run: node --check app.js
+      - name: Verify offline app shell files
+        run: |
+          test -s index.html
+          test -s styles.css
+          test -s app.js
+          test -s manifest.webmanifest
+          test -s sw.js
+          test -s assets/icon.svg
+          ! grep -Eq 'https?://' index.html styles.css app.js sw.js
