@@ -210,11 +210,11 @@ class _StudioHomeState extends State<StudioHome> {
         ..writeln('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text');
       for (var i = 0; i < nonEmpty.length; i++) {
         final line = nonEmpty[i];
-        final start = allSynced ? line.startMs.clamp(0, durationMs) : (i * durationMs / nonEmpty.length).round();
+        final int start = allSynced ? line.startMs.clamp(0, durationMs).toInt() : (i * durationMs / nonEmpty.length).round();
         final nextStart = i + 1 < nonEmpty.length
             ? (allSynced ? nonEmpty[i + 1].startMs : ((i + 1) * durationMs / nonEmpty.length).round())
             : durationMs;
-        final end = nextStart > start ? nextStart : (start + 3200).clamp(start + 500, durationMs);
+        final int end = nextStart > start ? nextStart : (start + 3200).clamp(start + 500, durationMs).toInt();
         if (end <= start) continue;
         final caption = line.text.replaceAll('{', r'\{').replaceAll('}', r'\}').replaceAll('\n', r'\N');
         ass.writeln('Dialogue: 0,${stamp(start)},${stamp(end)},Lyric,,0,0,0,,$caption');
