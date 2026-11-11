@@ -172,6 +172,83 @@ class _StudioHomeState extends State<StudioHome> {
     }catch(e){if(mounted)setState(()=>renderStatus='Export failed: $e');_toast('Could not export video: $e');}
     finally{if(mounted)setState(()=>rendering=false);}
   }
+  Future<void> _render() async {
+    await _save();
+    final p = current;
+    if (p == null) return;
+    if (p.audioPath == null || !File(p.audioPath!).existsSync()) { _toast('Import a song before exporting.'); return; }
+    final nonEmpty = p.lines.where((e) => e.text.trim().isNotEmpty).toList();
+    if (nonEmpty.isEmpty) { _toast('Write at least one lyric line.'); return; }
+    setState(() { rendering = true; renderStatus = 'Preparing your video…'; });
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final exportDir = Directory('${docs.path}/exports');
+      final tempDir = Directory('${docs.path}/render');
+      await exportDir.create(recursive: true);
+      await tempDir.create(recursive: true);
+      final durationMs = (player.duration ?? Duration(milliseconds: p.durationMs)).inMilliseconds;
+      if (durationMs <= 0) throw Exception('The song duration could not be read.');
+      p.durationMs = durationMs;
+      final preset = activeTheme;
+      final accent = preset.accent;
+      final rgb = '${accent.blue.toRadixString(16).padLeft(2, '0')}${accent.green.toRadixString(16).padLeft(2, '0')}${accent.red.toRadixString(16).padLeft(2, '0')}'.toUpperCase();
+      String stamp(int ms) {
+        final cs = ms ~/ 10;
+        return '${cs ~/ 360000}:${((cs ~/ 6000) % 60).toString().padLeft(2, '0')}:${((cs ~/ 100) % 60).toString().padLeft(2, '0')}.${(cs % 100).toString().padLeft(2, '0')}';
+      }
+      final allSynced = nonEmpty.any((e) => e.startMs > 0);
+      final ass = StringBuffer()
+        ..writeln('[Script Info]')
+        ..writeln('ScriptType: v4.00+')
+        ..writeln('PlayResX: 1080')
+        ..writeln('PlayResY: 1920')
+        ..writeln('WrapStyle: 2')
+        ..writeln('[V4+ Styles]')
+        ..writeln('Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding')
+        ..writeln('Style: Lyric,Arial,72,&H00$rgb,&H000000FF,&HAA000000,&H66000000,1,0,0,0,100,100,1,0,1,3,1,2,90,90,250,1')
+        ..writeln('[Events]')
+        ..writeln('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text');
+      for (var i = 0; i < nonEmpty.length; i++) {
+        final line = nonEmpty[i];
+        final start = allSynced ? line.startMs.clamp(0, durationMs) : (i * durationMs / nonEmpty.length).round();
+        final nextStart = i + 1 < nonEmpty.length
+            ? (allSynced ? nonEmpty[i + 1].startMs : ((i + 1) * durationMs / nonEmpty.length).round())
+            : durationMs;
+        final end = nextStart > start ? nextStart : (start + 3200).clamp(start + 500, durationMs);
+        if (end <= start) continue;
+        final caption = line.text.replaceAll('{', r'\{').replaceAll('}', r'\}').replaceAll('\n', r'\N');
+        ass.writeln('Dialogue: 0,${stamp(start)},${stamp(end)},Lyric,,0,0,0,,$caption');
+      }
+      final assFile = File('${tempDir.path}/captions.ass');
+      await assFile.writeAsString(ass.toString());
+      final bg = preset.colors.first;
+      final accentBg = preset.colors[1];
+      final bgHex = '0x${bg.red.toRadixString(16).padLeft(2, '0')}${bg.green.toRadixString(16).padLeft(2, '0')}${bg.blue.toRadixString(16).padLeft(2, '0')}';
+      final accentHex = '0x${accentBg.red.toRadixString(16).padLeft(2, '0')}${accentBg.green.toRadixString(16).padLeft(2, '0')}${accentBg.blue.toRadixString(16).padLeft(2, '0')}';
+      String esc(String value) => value.replaceAll('\\', '/').replaceAll(':', r'\:').replaceAll("'", r"\'");
+      final seconds = (durationMs / 1000).toStringAsFixed(2);
+      final output = '${exportDir.path}/${p.id}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final videoFilter = "color=c=$bgHex:s=1080x1920:r=30:d=$seconds,"
+          "drawbox=x='mod(t*78,1080)-220':y='mod(t*34,1920)-180':w=520:h=520:color=$accentHex@0.34:t=fill,"
+          "drawbox=x='mod(t*39+500,1080)-160':y='mod(t*23+800,1920)-160':w=320:h=320:color=$bgHex@0.42:t=fill,"
+          "ass='${esc(assFile.path)}',format=yuv420p";
+      final command = "-y -f lavfi -i \\"$videoFilter\\" -i '${esc(p.audioPath!)}' "
+          "-map 0:v:0 -map 1:a:0 -t $seconds -r 30 -c:v libx264 -preset ultrafast -crf 23 "
+          "-c:a aac -b:a 192k -shortest -movflags +faststart '${esc(output)}'";
+      if (mounted) setState(() => renderStatus = 'Rendering 1080 × 1920 MP4 on this phone…');
+      final session = await FFmpegKit.execute(command);
+      final code = await session.getReturnCode();
+      if (!ReturnCode.isSuccess(code) || !File(output).existsSync()) throw Exception(await session.getOutput() ?? 'FFmpeg video encoding failed.');
+      if (mounted) setState(() => renderStatus = 'Video ready: $output');
+      _toast('Your lyric video has been rendered.');
+    } catch (error) {
+      if (mounted) setState(() => renderStatus = 'Export failed: $error');
+      _toast('Video export failed: $error');
+    } finally {
+      if (mounted) setState(() => rendering = false);
+    }
+  }
+
   void _toast(String s)=>ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(s),behavior:SnackBarBehavior.floating));
   @override void dispose(){saveTimer?.cancel();player.dispose();title.dispose();lyrics.dispose();super.dispose();}
 
