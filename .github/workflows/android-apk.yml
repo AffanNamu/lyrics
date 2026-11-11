@@ -20,6 +20,9 @@ jobs:
       - name: Generate Android host project
         working-directory: mobile
         run: flutter create --platforms=android --org com.lyricsstudio .
+      - name: Set Android minimum SDK for FFmpeg
+        working-directory: mobile
+        run: sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/' android/app/build.gradle.kts
       - name: Install packages
         working-directory: mobile
         run: flutter pub get
