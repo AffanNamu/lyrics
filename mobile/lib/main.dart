@@ -125,55 +125,6 @@ class _StudioHomeState extends State<StudioHome> {
   ThemePreset get activeTheme=>themes.firstWhere((e)=>e.id==current?.theme,orElse:()=>themes.first);
   Future<void> _render() async {
     await _save();
-    final p=current;
-    if(p==null)return;
-    if(p.audioPath==null || !File(p.audioPath!).existsSync()){_toast('Import a song first.');return;}
-    if(p.lines.every((e)=>e.text.trim().isEmpty)){_toast('Write your lyrics first.');return;}
-    setState(()=>rendering=true);
-    try{
-      final docs=await getApplicationDocumentsDirectory();
-      final outDir=Directory('${docs.path}/exports');await outDir.create(recursive:true);
-      final tmp=Directory('${docs.path}/render');await tmp.create(recursive:true);
-      final ass=File('${tmp.path}/lyrics.ass');
-      final theme=activeTheme;
-      final col=theme.accent;
-      final rgb='${col.blue.toRadixString(16).padLeft(2,'0')}${col.green.toRadixString(16).padLeft(2,'0')}${col.red.toRadixString(16).padLeft(2,'0')}'.toUpperCase();
-      final b=StringBuffer('[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 2\n');
-      b.write('[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n');
-      b.write('Style: Lyric,Arial,72,&H00$rgb,&H000000FF,&HAA000000,&H66000000,1,0,0,0,100,100,1,0,1,3,1,2,90,90,250,1\n');
-      b.write('[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n');
-      String stamp(int ms){final cs=ms~/10;return '${cs~/360000}:${((cs~/6000)%60).toString().padLeft(2,'0')}:${((cs~/100)%60).toString().padLeft(2,'0')}.${(cs%100).toString().padLeft(2,'0')}';}
-      for(var i=0;i<p.lines.length;i++){
-        final line=p.lines[i];if(line.text.trim().isEmpty)continue;
-        final start=line.startMs.clamp(0,p.durationMs);
-        var end=i+1<p.lines.length?p.lines[i+1].startMs:p.durationMs;
-        if(end<=start)end=(start+3500).clamp(start+800,p.durationMs);
-        if(end<=start)continue;
-        final text=line.text.replaceAll('{',r'\{').replaceAll('}',r'\}').replaceAll('\n',r'\N');
-        b.write('Dialogue: 0,${stamp(start)},${stamp(end)},Lyric,,0,0,0,,$text\n');
-      }
-      await ass.writeAsString(b.toString());
-      final output='${outDir.path}/${p.id}_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      String esc(String s)=>s.replaceAll('\\','/').replaceAll(':',r'\:').replaceAll("'",r"\\'");
-      final duration=(p.durationMs/1000).clamp(5,3600).toStringAsFixed(2);
-      final base='color=c=0x${theme.colors[0].red.toRadixString(16).padLeft(2,'0')}${theme.colors[0].green.toRadixString(16).padLeft(2,'0')}${theme.colors[0].blue.toRadixString(16).padLeft(2,'0')}:s=1080x1920:r=30:d=$duration';
-      final filter="$base,drawbox=x='mod(t*90,1080)-180':y='mod(t*32,1920)-160':w=430:h=430:color=0x${theme.colors[1].red.toRadixString(16).padLeft(2,'0')}${theme.colors[1].green.toRadixString(16).padLeft(2,'0')}${theme.colors[1].blue.toRadixString(16).padLeft(2,'0')}@0.35:t=fill,ass='${esc(ass.path)}',format=yuv420p";
-      final cmd="-y -f lavfi -i \"$filter\" -i '${esc(p.audioPath!)}' -map 0:v -map 1:a -t $duration -r 30 -c:v libx264 -preset ultrafast -crf 23 -c:a aac -shortest -movflags +faststart '${esc(output)}'";
-      if(mounted)setState(()=>renderStatus='Rendering locally. This may take several minutes…');
-      final session=await FFmpegKit.execute(cmd);
-      final code=await session.getReturnCode();
-      if(ReturnCode.isSuccess(code)){
-        if(mounted)setState(()=>renderStatus='Saved to app exports: $output');
-        _toast('Your MP4 video has been created.');
-      }else{
-        final logs=await session.getOutput();
-        throw Exception(logs ?? 'Video encoder failed. Check FFmpeg logs.');
-      }
-    }catch(e){if(mounted)setState(()=>renderStatus='Export failed: $e');_toast('Could not export video: $e');}
-    finally{if(mounted)setState(()=>rendering=false);}
-  }
-  Future<void> _render() async {
-    await _save();
     final p = current;
     if (p == null) return;
     if (p.audioPath == null || !File(p.audioPath!).existsSync()) { _toast('Import a song before exporting.'); return; }
@@ -232,7 +183,7 @@ class _StudioHomeState extends State<StudioHome> {
           "drawbox=x='mod(t*78,1080)-220':y='mod(t*34,1920)-180':w=520:h=520:color=$accentHex@0.34:t=fill,"
           "drawbox=x='mod(t*39+500,1080)-160':y='mod(t*23+800,1920)-160':w=320:h=320:color=$bgHex@0.42:t=fill,"
           "ass='${esc(assFile.path)}',format=yuv420p";
-      final command = "-y -f lavfi -i \\"$videoFilter\\" -i '${esc(p.audioPath!)}' "
+      final command = "-y -f lavfi -i \"$videoFilter\" -i '${esc(p.audioPath!)}' "
           "-map 0:v:0 -map 1:a:0 -t $seconds -r 30 -c:v libx264 -preset ultrafast -crf 23 "
           "-c:a aac -b:a 192k -shortest -movflags +faststart '${esc(output)}'";
       if (mounted) setState(() => renderStatus = 'Rendering 1080 × 1920 MP4 on this phone…');
