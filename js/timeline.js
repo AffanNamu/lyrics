@@ -1,6 +1,7 @@
 // Timeline UI: ruler, video / lyric / audio tracks, trimming, moving, reordering and scrubbing.
 import { h, icon, clamp, fmtTime, round3 } from './util.js';
-import { store, layout, duration, clipDur, MIN_DUR } from './store.js';
+import { store, layout, duration, clipDur, MIN_DUR, cuesOf } from './store.js';
+import { isSynced } from './sync.js';
 
 const PAD = 18;
 export class Timeline {
@@ -54,13 +55,17 @@ export class Timeline {
     if (!L.length) vt.append(h('div.tl-empty', { style: { left: PAD + 'px' } }, 'Add videos or photos from the Media tab'));
 
     const lt = h('div.tl-track.lyrics', { dataset: { track: 'lyrics' } }, h('span.tl-label', null, icon('text', 13)));
-    for (const l of p.lyrics) {
-      lt.append(h('div.tl-item.lyric' + is('lyric', l.id), {
-        dataset: { type: 'lyric', id: l.id }, title: l.text,
-        style: { left: this.x(l.start) + 'px', width: Math.max(4, (l.end - l.start) * pps - 1) + 'px' },
-      }, h('span.tl-name', null, l.text), handles()));
+    const { cues, unplaced } = cuesOf(p);
+    for (const c of cues) {
+      lt.append(h('div.tl-item.lyric' + (c.synced ? '' : '.provisional') + is('lyric', c.id), {
+        dataset: { type: 'lyric', id: c.id }, title: c.synced ? c.text : c.text + ' — not timed yet (shown at an estimated time)',
+        style: { left: this.x(c.startMs / 1000) + 'px', width: Math.max(4, (c.endMs - c.startMs) / 1000 * pps - 1) + 'px' },
+      }, h('span.tl-name', null, c.text), handles()));
     }
     if (!p.lyrics.length) lt.append(h('div.tl-empty', { style: { left: PAD + 'px' } }, 'Lyrics appear here'));
+    else if (unplaced.length) lt.append(h('div.tl-empty', { style: { left: (cues.length ? this.x(cues[cues.length - 1].endMs / 1000) + 10 : PAD) + 'px' } },
+      `${unplaced.length} line${unplaced.length > 1 ? 's' : ''} not timed — set the vocal start or sync in Lyrics`));
+    if (Number.isInteger(p.vocalStartMs)) ruler.append(h('span.tl-vocal', { style: { left: this.x(p.vocalStartMs / 1000) + 'px' }, title: 'Singer starts here' }, icon('mic', 11)));
 
     const at = h('div.tl-track.audio', { dataset: { track: 'audio' } }, h('span.tl-label', null, icon('music', 13)));
     for (const a of p.audio) {
@@ -108,7 +113,8 @@ export class Timeline {
       if (!onRuler && store.sel) store.select(null);
       e.preventDefault(); return;
     }
-    const { type, id } = item.dataset, mode = e.target.dataset.mode || 'move', obj = this._find(type, id); if (!obj) return;
+    const { type, id } = item.dataset, mode = e.target.dataset.mode || 'move';
+    const obj = this._find(type, id); if (!obj) return;
     const was = store.sel?.type === type && store.sel.id === id;
     if (e.pointerType === 'touch' && !was) { this.tap = { x: e.clientX, y: e.clientY, type, id }; return; }
     this.drag = { kind: 'item', type, id, mode, x0: e.clientX, orig: structuredClone(obj), moved: false, was };
@@ -120,6 +126,7 @@ export class Timeline {
     const d = this.drag; if (!d) return;
     if (d.kind === 'scrub') { this.player.seek(this.timeAt(e.clientX)); return; }
     const px = e.clientX - d.x0; if (!d.moved && Math.abs(px) < 5) return;
+    if (!d.moved && d.type === 'lyric') d.orig = structuredClone(store.materialize(d.id));   // provisional -> timed only when really dragged
     d.moved = true; document.body.classList.add('dragging');
     const p = store.project, o = d.orig, obj = this._find(d.type, d.id), dt = px / this.pps; if (!obj) return;
     const m = store.media.get(o.mediaId);
@@ -133,9 +140,10 @@ export class Timeline {
         if (hit !== cur) { const mid = (L[hit].start + L[hit].end) / 2; if ((hit > cur && t > mid) || (hit < cur && t < mid)) store.moveClip(d.id, hit); }
       }
     } else if (d.type === 'lyric') {
-      if (d.mode === 'l') obj.start = round3(clamp(o.start + dt, 0, o.end - MIN_DUR));
-      else if (d.mode === 'r') obj.end = round3(Math.max(o.start + MIN_DUR, o.end + dt));
-      else { obj.start = round3(Math.max(0, o.start + dt)); obj.end = round3(obj.start + (o.end - o.start)); }
+      const dms = Math.round(dt * 1000), min = MIN_DUR * 1000;
+      if (d.mode === 'l') obj.startMs = clamp(o.startMs + dms, 0, o.endMs - min);
+      else if (d.mode === 'r') obj.endMs = Math.max(o.startMs + min, o.endMs + dms);
+      else { obj.startMs = Math.max(0, o.startMs + dms); obj.endMs = obj.startMs + (o.endMs - o.startMs); }
     } else {
       const len = o.out - o.in;
       if (d.mode === 'l') { const k = clamp(dt, -Math.min(o.in, o.start), len - MIN_DUR); obj.in = round3(o.in + k); obj.start = round3(o.start + k); }

@@ -1,6 +1,7 @@
 // Animated lyric styles drawn on canvas. All are pure functions of time.
 import { clamp, easeOut, easeBack, rnd } from './util.js';
 import { rgba, mix } from './backgrounds.js';
+import { activeCue } from './sync.js';
 
 export const FONTS = {
   Poppins: { weights: [600, 800], stack: '"Poppins", system-ui, sans-serif' },
@@ -174,16 +175,17 @@ export const LYRIC_FX = FX;
 
 function drawScroll(ctx, env, lines, st) {
   const { W, H, t, S } = env; if (!lines.length) return;
-  let cur = -1; for (let i = 0; i < lines.length; i++) if (lines[i].start <= t) cur = i;
+  let cur = -1; for (let i = 0; i < lines.length; i++) if (lines[i].startMs <= t * 1000) cur = i;
+  if (cur < 0) return;   // nothing before the first lyric — never show the list during an intro
   const px = st.size * S * 0.8, font = fontOf(st, px), maxW = W * 0.8, gap = px * 0.55, x0 = W * 0.1;
   const lay = i => layoutText(ctx, st.upper ? lines[i].text.toUpperCase() : lines[i].text, font, maxW);
   const hgt = i => lay(i).rows.length * lay(i).lineH + gap;
-  const c = Math.max(cur, 0), e = cur < 0 ? 1 : easeOut((t - lines[c].start) / 0.4);
+  const c = Math.max(cur, 0), e = cur < 0 ? 1 : easeOut((t - lines[c].startMs / 1000) / 0.4);
   const shift = c > 0 ? (1 - e) * (hgt(c - 1) / 2 + hgt(c) / 2) : (cur < 0 ? 0 : 0);
   ctx.font = font; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   const cy = st.posY * H;
   const drawLine = (i, yc) => {
-    const L = lay(i), active = i === cur && t < lines[i].end, fade = clamp(1.15 - Math.abs(yc - cy) / (H * 0.4), 0, 1);
+    const L = lay(i), active = i === cur && t * 1000 < lines[i].endMs, fade = clamp(1.15 - Math.abs(yc - cy) / (H * 0.4), 0, 1);
     if (fade <= 0) return;
     ctx.globalAlpha = fade * (active ? 1 : i < cur ? 0.26 : 0.4); shadow(ctx, S, active);
     ctx.fillStyle = active ? st.accent : st.color;
@@ -195,21 +197,21 @@ function drawScroll(ctx, env, lines, st) {
   for (let i = c - 1, yy = y; i >= 0 && i > c - 7; i--) { yy -= hgt(i + 1) / 2 + hgt(i) / 2; if (yy < -H * .1) break; drawLine(i, yy); }
 }
 
-/** Draws the lyric layer. `lines` must be sorted by start. */
+/** Draws the lyric layer. `lines` are resolved cues (js/sync.js resolveCues): sorted, non-overlapping, in ms. */
 export function drawLyrics(ctx, env, lines, st) {
   const fx = FX[st.fx] || FX.fade, { W, H, t, S } = env;
   ctx.save();
   if (fx.list) { drawScroll(ctx, env, lines, st); ctx.restore(); return; }
-  let line = null; for (const l of lines) { if (l.start <= t && t < l.end) line = l; else if (l.start > t) break; }
+  const line = activeCue(lines, t * 1000);
   if (!line || !line.text.trim()) { ctx.restore(); return; }
   const px = st.size * S * (fx.scale || 1), font = fontOf(st, px), text = (st.upper || fx.upper) ? line.text.toUpperCase() : line.text;
   const tracking = fx.tracking ? Math.round(px * fx.tracking) : 0;
   const L = fx.own ? null : layoutText(ctx, text, font, W * 0.84, tracking);
   ctx.font = font; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; if ('letterSpacing' in ctx) ctx.letterSpacing = tracking + 'px';
-  const lt = t - line.start, d = Math.max(0.05, line.end - line.start);
+  const lt = t - line.startMs / 1000, d = Math.max(0.05, (line.endMs - line.startMs) / 1000);
   fx.draw(ctx, {
     L, text, cx: W / 2, cy: st.posY * H, lt, d, p: lt / d, wp: clamp(lt / (d * 0.92), 0, 1),
-    aIn: easeOut(lt / 0.3), aOut: clamp((line.end - t) / 0.22, 0, 1), S, t, st, px, W, H,
+    aIn: easeOut(lt / 0.3), aOut: clamp((line.endMs / 1000 - t) / 0.22, 0, 1), S, t, st, px, W, H,
   });
   ctx.restore();
 }

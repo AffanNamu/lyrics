@@ -1,5 +1,6 @@
 // Project model + editing operations + undo history. The project is plain JSON; media blobs live in IndexedDB.
 import { uid, clamp, round3 } from './util.js';
+import { resolveCues, isSynced, SCHEMA_VERSION } from './sync.js';
 
 export const ASPECTS = {
   '9:16': [1080, 1920, 'Vertical'], '16:9': [1920, 1080, 'Wide'],
@@ -10,7 +11,8 @@ export const MIN_DUR = 0.2;
 export function newProject(name, aspect = '9:16') {
   const [width, height] = ASPECTS[aspect];
   return {
-    id: uid(), name: name || 'Untitled video', createdAt: Date.now(), updatedAt: Date.now(),
+    id: uid(), schemaVersion: SCHEMA_VERSION, name: name || 'Untitled video', createdAt: Date.now(), updatedAt: Date.now(),
+    vocalStartMs: null, vocalStartSource: null, detection: null,
     aspect, width, height, template: 'aurora-karaoke',
     background: { type: 'aurora', colors: ['#7c5cff', '#22d3ee', '#f472b6'] },
     style: { fx: 'karaoke', font: 'Poppins', weight: 800, size: 78, color: '#ffffff', accent: '#c6f24e', posY: 0.5, upper: false },
@@ -27,12 +29,28 @@ export function layout(project) {
   return project.clips.map((clip, index) => { const start = t; t += clipDur(clip); return { clip, start, end: t, index }; });
 }
 export function videoEnd(p) { return p.clips.reduce((s, c) => s + clipDur(c), 0); }
-export function duration(p) {
+/** End of the last video clip or audio track, in seconds (0 when the project has no media). */
+export function mediaEnd(p) {
   let d = videoEnd(p);
   for (const a of p.audio) d = Math.max(d, a.start + (a.out - a.in));
-  if (!p.clips.length && !p.audio.length) for (const l of p.lyrics) d = Math.max(d, l.end);
   return d;
 }
+export function duration(p) {
+  const d = mediaEnd(p);
+  if (d > 0) return d;
+  const c = cuesOf(p).cues; return c.length ? c[c.length - 1].endMs / 1000 : 0;
+}
+/**
+ * Display cues for the project's lyrics — the single timing path used by preview, timeline and export
+ * (docs/SYNC_SPEC.md). Memoised on the inputs that affect timing.
+ */
+let cueMemo = { key: '', val: null };
+export function cuesOf(p) {
+  const end = mediaEnd(p), key = JSON.stringify([p.lyrics, p.vocalStartMs, end]);
+  if (cueMemo.key !== key) cueMemo = { key, val: resolveCues(p.lyrics, { durationMs: end > 0 ? Math.round(end * 1000) : undefined, vocalStartMs: p.vocalStartMs }) };
+  return cueMemo.val;
+}
+const msOf = t => Math.max(0, Math.round(t * 1000));
 export function clipAt(p, t) {
   const L = layout(p);
   for (const e of L) if (t >= e.start && t < e.end) return e;
@@ -109,11 +127,11 @@ class Store {
       }
     }
     if (s?.type === 'lyric') {
-      const l = this.findSel();
-      if (l && t > l.start + MIN_DUR && t < l.end - MIN_DUR) {
-        const words = l.text.split(/\s+/), k = clamp(Math.round(words.length * (t - l.start) / (l.end - l.start)), 1, Math.max(1, words.length - 1));
-        const b = { id: uid(), text: words.slice(k).join(' ') || l.text, start: round3(t), end: l.end };
-        l.text = words.slice(0, k).join(' '); l.end = round3(t);
+      const l = this.materialize(s.id), tm = msOf(t);
+      if (l && isSynced(l) && tm > l.startMs + MIN_DUR * 1000 && tm < l.endMs - MIN_DUR * 1000) {
+        const words = l.text.split(/\s+/), k = clamp(Math.round(words.length * (tm - l.startMs) / (l.endMs - l.startMs)), 1, Math.max(1, words.length - 1));
+        const b = { id: uid(), text: words.slice(k).join(' ') || l.text, startMs: tm, endMs: l.endMs };
+        l.text = words.slice(0, k).join(' '); l.endMs = tm;
         p.lyrics.splice(p.lyrics.indexOf(l) + 1, 0, b); this.commit(); return true;
       }
     }
@@ -134,14 +152,29 @@ class Store {
     const y = { ...structuredClone(x), id: uid() };
     if (s.type === 'clip') p.clips.splice(p.clips.indexOf(x) + 1, 0, y);
     else if (s.type === 'audio') { y.start = x.start + (x.out - x.in); p.audio.push(y); }
-    else { const d = x.end - x.start; y.start = x.end; y.end = x.end + d; p.lyrics.splice(p.lyrics.indexOf(x) + 1, 0, y); }
+    else {
+      const c = cuesOf(p).cues.find(q => q.id === x.id);
+      if (c) { y.startMs = c.endMs; y.endMs = c.endMs + (c.endMs - c.startMs); } else { y.startMs = null; y.endMs = null; }
+      p.lyrics.splice(p.lyrics.indexOf(x) + 1, 0, y);
+    }
     this.sel = { type: s.type, id: y.id }; this.commit(); return true;
   }
   moveClip(id, toIndex) {
     const p = this.project, i = p.clips.findIndex(c => c.id === id); if (i < 0) return;
     const [c] = p.clips.splice(i, 1); p.clips.splice(clamp(toIndex, 0, p.clips.length), 0, c);
   }
-  sortLyrics() { this.project.lyrics.sort((a, b) => a.start - b.start); }
+  /** Sorts lines by time only when every line is timed, so unsynced lines keep their place. */
+  sortLyrics() {
+    const L = this.project.lyrics;
+    if (L.every(l => !l.text.trim() || isSynced(l))) L.sort((a, b) => (isSynced(a) ? a.startMs : -1) - (isSynced(b) ? b.startMs : -1));
+  }
+  /** Gives an unsynced (provisional) lyric line the exact times it is currently shown at, before it is edited. */
+  materialize(id) {
+    const l = this.project.lyrics.find(x => x.id === id); if (!l) return null;
+    const c = cuesOf(this.project).cues.find(q => q.id === id);
+    if (c) { if (!isSynced(l)) l.startMs = c.startMs; if (!(Number.isInteger(l.endMs) && l.endMs > l.startMs)) l.endMs = c.endMs; }
+    return l;
+  }
   removeMedia(id) {
     const p = this.project;
     p.clips = p.clips.filter(c => c.mediaId !== id); p.audio = p.audio.filter(a => a.mediaId !== id);

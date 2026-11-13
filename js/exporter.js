@@ -2,7 +2,7 @@
 // through the bundled Mediabunny muxer. No server, no upload — the file is produced on this device.
 import * as MB from '../vendor/mediabunny.min.mjs';
 import { clamp } from './util.js';
-import { layout, duration } from './store.js';
+import { layout, duration, cuesOf } from './store.js';
 import { Renderer, levelAt } from './render.js';
 import { audioBufferOf, mediaUrl } from './media.js';
 
@@ -22,8 +22,11 @@ export async function exportFormats(w = 1280, h = 720) {
   return out;
 }
 
-/** Mixes all clip audio + soundtrack into one buffer. Returns null when the project is silent. */
-async function mixAudio(project, media, dur, onStep) {
+/**
+ * Mixes all clip audio + soundtrack into one buffer on the project timeline. Returns null when the project is silent.
+ * Also used by vocal detection (at 16 kHz mono) so detection hears exactly what the exported video contains.
+ */
+export async function mixAudio(project, media, dur, onStep, { rate = 48000, channels = 2 } = {}) {
   const L = layout(project), jobs = [];
   for (const e of L) {
     const c = e.clip; if (c.kind !== 'video' || c.muted || c.volume <= 0) continue;
@@ -31,7 +34,7 @@ async function mixAudio(project, media, dur, onStep) {
   }
   for (const a of project.audio) jobs.push({ m: media.get(a.mediaId), start: a.start, off: a.in, len: a.out - a.in, rate: 1, vol: a.volume, fi: a.fadeIn, fo: a.fadeOut });
   if (!jobs.length) return null;
-  const rate = 48000, ctx = new OfflineAudioContext(2, Math.ceil(dur * rate), rate); let any = false;
+  const ctx = new OfflineAudioContext(channels, Math.max(1, Math.ceil(dur * rate)), rate); let any = false;
   for (const j of jobs) {
     if (!j.m) continue;
     onStep?.('Reading audio: ' + j.m.name);
@@ -139,7 +142,7 @@ export async function exportProject(project, media, opts, hooks = {}) {
   output.addVideoTrack(vsrc, { frameRate: fps });
   let asrc = null;
   if (mixed) { asrc = new MB.AudioBufferSource({ codec: fmt.audio, bitrate: 160000 }); output.addAudioTrack(asrc); }
-  const sorted = [...project.lyrics].sort((a, b) => a.start - b.start);
+  const cues = cuesOf(project).cues;   // identical timing to the preview
   let current = null, audioPos = 0; const chunk = mixed ? mixed.sampleRate : 0;
 
   try {
@@ -151,7 +154,7 @@ export async function exportProject(project, media, opts, hooks = {}) {
         const c = s.e.clip;
         current = c.kind === 'image' ? images.get(c.mediaId) : await sources.get(c.id)?.frame(c.id, s.st);
       }
-      renderer.render(ctx, W, H, project, t, () => current, { level: levelAt(project, media, t), dur, sorted });
+      renderer.render(ctx, W, H, project, t, () => current, { level: levelAt(project, media, t), dur, cues });
       await vsrc.add(t, 1 / fps);
       while (asrc && audioPos < mixed.length && audioPos / mixed.sampleRate <= t + 1) {
         const to = Math.min(mixed.length, audioPos + chunk); await asrc.add(sliceBuffer(mixed, audioPos, to)); audioPos = to;

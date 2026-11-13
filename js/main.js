@@ -8,6 +8,7 @@ import { Panels, TABS } from './panels.js';
 import { applyTemplate, TEMPLATES } from './templates.js';
 import { releaseUrls, dropBuffers } from './media.js';
 import { FONTS } from './lyricfx.js';
+import { migrateProject } from './sync.js';
 
 const home = $('#home'), editor = $('#editor');
 let player, timeline, panels, saveTimer, opening = false;
@@ -69,7 +70,7 @@ async function openProject(id) {
     const rec = await db.getProject(id); if (!rec) return toast('Project not found', 'error');
     const media = await db.listMedia(id);
     home.hidden = true; editor.hidden = false; document.body.classList.remove('panel-open');
-    store.load(rec.data, media);
+    store.load(migrateProject(rec.data), media);
     $('#projectName').value = rec.data.name;
     player.resize(); player.seek(0); player.start();
     timeline.fitted = false; timeline.fit();

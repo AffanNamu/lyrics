@@ -14,3 +14,5 @@ jobs:
           node-version: 22
       - name: Check modules, offline app shell and absence of remote URLs
         run: node scripts/check.mjs
+      - name: Shared sync fixtures, lyric formats and vocal detector tests
+        run: node --test tests/*.test.mjs

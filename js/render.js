@@ -1,6 +1,6 @@
 // Compositor: draws one frame of a project at time t. Used identically by the live preview and the exporter.
 import { clamp, easeInOut, rnd } from './util.js';
-import { clipDur, layout, duration } from './store.js';
+import { clipDur, layout, duration, cuesOf } from './store.js';
 import { drawBackground } from './backgrounds.js';
 import { drawLyrics, fontOf } from './lyricfx.js';
 
@@ -117,8 +117,8 @@ export class Renderer {
     ctx.restore();
 
     if (opts.lyrics !== false && project.lyrics.length) {
-      const lines = opts.sorted || [...project.lyrics].sort((a, b) => a.start - b.start);
-      drawLyrics(ctx, env, lines, project.style);
+      // Same resolver for preview and export: opts.cues lets template thumbnails pass sample cues.
+      drawLyrics(ctx, env, opts.cues || cuesOf(project).cues, project.style);
     }
 
     ctx.save();

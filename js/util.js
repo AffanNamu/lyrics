@@ -67,6 +67,9 @@ const P = {
   wifiOff: '<path d="M3 3l18 18M8.500 16.500a5 5 0 017 0M5 13a10 10 0 014-2.500M19 13a10 10 0 00-5-2.800M2 9.500a15 15 0 014.500-3M22 9.500a15 15 0 00-11-3.900"/><circle cx="12" cy="20" r="1"/>',
   shield: '<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/><path d="M9 12l2.500 2.500L15.500 10"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>',
+  wand: '<path d="M4 20L16 8M14 4v3M18 6h3M19 10v2M10 4h2"/>',
+  play2: '<path d="M8 5v14l11-7z"/>',
 };
 export function icon(name, size = 18) {
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

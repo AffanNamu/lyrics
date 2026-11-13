@@ -59,7 +59,7 @@ export function applyTemplate(project, id) {
 }
 
 export const SAMPLE_LINES = [
-  { id: 's1', text: 'Feel the music tonight', start: 0.2, end: 2.6 },
-  { id: 's2', text: 'Every word in the light', start: 2.8, end: 5.2 },
-  { id: 's3', text: 'Sing it loud, sing it right', start: 5.4, end: 7.8 },
+  { id: 's1', text: 'Feel the music tonight', startMs: 200, endMs: 2600 },
+  { id: 's2', text: 'Every word in the light', startMs: 2800, endMs: 5200 },
+  { id: 's3', text: 'Sing it loud, sing it right', startMs: 5400, endMs: 7800 },
 ];

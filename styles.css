@@ -283,3 +283,29 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .tl-item.sel .tl-name{left:18px;right:18px}
+.tl-item.lyric.provisional{background:repeating-linear-gradient(135deg,#3b3489 0 8px,#332d77 8px 16px);border:1.5px dashed rgba(255,255,255,.35)}
+.tl-item.lyric.provisional.sel{border:1.5px dashed #fff}
+.tl-vocal{position:absolute;top:2px;z-index:4;transform:translateX(-50%);display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--pink);color:#fff;pointer-events:none}
+/* vocal start + detection */
+.vocal-card{padding:14px;border-radius:var(--r);background:linear-gradient(160deg,rgba(255,111,174,.09),rgba(139,123,255,.07));border:1px solid var(--line2);margin-bottom:12px}
+.vc-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.vc-top svg{color:var(--pink);flex:none}
+.vc-title{font-size:12.5px;color:var(--muted)}
+.vc-time{margin-left:auto;font:600 20px var(--display);font-variant-numeric:tabular-nums}
+.vc-nudge{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.vc-nudge .chip{min-height:30px;padding:3px 9px;display:inline-flex;align-items:center;gap:4px}
+.vc-links{display:flex;flex-wrap:wrap;gap:14px}
+.linkish{font-size:12.5px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.linkish:hover{color:var(--text)}
+.det-card{margin-top:12px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line2)}
+.det-card.high{border-color:var(--accent)}
+.det-card.medium{border-color:var(--warn)}
+.det-card.low,.det-card.none{border-color:var(--line2)}
+.badge-lvl{margin-left:auto;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:var(--surface3);color:var(--muted)}
+.det-card.high .badge-lvl{background:rgba(198,242,78,.15);color:var(--accent)}
+.det-card.medium .badge-lvl{background:rgba(255,194,75,.15);color:var(--warn)}
+.lyric-row.prov .time{font-style:italic;color:var(--dim)}
+.lyric-row.untimed .time{color:var(--dim)}
+.sync-count{margin:2px 0 8px}
+.vocal-card .btn-row{flex-direction:column}
+.vocal-card .det-card .btn-row{flex-direction:row}

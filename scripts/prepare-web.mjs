@@ -2,7 +2,7 @@
 import { cp, mkdir, rm } from 'node:fs/promises';
 
 const files = ['index.html', 'styles.css', 'manifest.webmanifest', 'sw.js'];
-const dirs = ['js', 'vendor', 'fonts', 'assets'];
+const dirs = ['js', 'vendor', 'fonts', 'assets', 'models'];
 await rm('www', { recursive: true, force: true });
 await mkdir('www', { recursive: true });
 for (const f of files) await cp(f, `www/${f}`);
