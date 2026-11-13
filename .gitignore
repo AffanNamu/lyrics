@@ -1,3 +1,8 @@
 node_modules/
 www/
 android/
+mobile/.dart_tool/
+mobile/build/
+mobile/android/
+mobile/pubspec.lock
+*.iml

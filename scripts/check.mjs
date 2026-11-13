@@ -21,5 +21,7 @@ for (const f of ['index.html', 'styles.css', 'sw.js', ...mods.map(m => 'js/' + m
 for (const m of (await readFile('styles.css', 'utf8')).matchAll(/url\((fonts\/[^)]+)\)/g)) await access(m[1]).catch(() => fail('missing font ' + m[1]));
 await access('models/vocal-yamnet-int8.bin').catch(() => fail('missing models/vocal-yamnet-int8.bin'));
 if (!shell.includes('models/vocal-yamnet-int8.bin')) fail('the vocal model is not cached for offline use');
+{ const a = await readFile('models/vocal-yamnet-int8.bin'), b = await readFile('mobile/assets/models/vocal-yamnet-int8.bin').catch(() => null);
+  if (!b || !a.equals(b)) fail('mobile/assets/models/vocal-yamnet-int8.bin must be identical to models/vocal-yamnet-int8.bin'); }
 if (failed) process.exit(1);
 console.log(`OK: ${shell.length} cached files present, ${mods.length} modules parse, no remote URLs.`);

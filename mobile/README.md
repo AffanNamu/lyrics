@@ -1,24 +1,40 @@
-# LYRICS Studio — native Android
+# LYRICS Studio — native Android (Flutter)
 
-This is the native Flutter Android application. The legacy web prototype remains outside the mobile directory; it is not the Android product.
+Offline lyric-video studio for Android. No account, no network needed.
 
-## Implemented foundation
-- Native Flutter interface and bottom navigation.
-- Offline project metadata and local audio copies.
-- Local playback, seek controls and lyric-line timestamp capture.
-- Five animated theme presets with live previews.
-- MP4 rendering integration using FFmpegKit and ASS subtitle overlays.
+## Features
+- Projects saved on the phone (schema v2, migrated automatically from older versions), undo / redo.
+- Import a song; play, seek, ±5 s, playback speed 0.5×–1.25×.
+- **Lyric sync:** pasted lyrics stay hidden until timed. *Tap when singer starts* (first tap = vocal start), tap
+  through the rest of the lines, or sync from any line. Per line: set at playhead, ±0.1 s, custom end or
+  "end with next line", replay, delete. *Song starts with vocals*, nudges, preview, reset.
+- **Automatic vocal-start detection** on the phone (`lib/vocal_detector.dart`, same model and rule as the browser;
+  decoded with FFmpegKit, analysed in background isolates). Shows a confidence level; only applied when you accept.
+- **Live preview** that shows exactly the cue the video will show at the current playback position.
+- **Style:** 4 lyric animations (clean fade, karaoke fill, pop bounce, caption box), 7 bundled fonts, size,
+  vertical position, uppercase, text and highlight colours, 5 animated themes or your own photo (with slow drift
+  and darkening).
+- Import `.lrc` / `.srt`; save `.lrc` / `.srt`.
+- **MP4 export** (1080×1920, 30 fps, H.264/AAC) with FFmpegKit; subtitle windows are the same resolved cues as the
+  preview (`lib/export_ass.dart`); the finished video can be saved anywhere with the system file dialog.
 
-## Build
+## Shared with the browser app
+`lib/sync.dart` (docs/SYNC_SPEC.md), `lib/lyrics_format.dart`, `lib/vocal_detector.dart` implement the same rules
+as `js/sync.js`, `js/lyrics.js` and `js/vocal.js`, and are tested against the same fixtures in `../spec/`.
+
+## Browser-only (for now)
+Multi-clip video editing (split / trim / reorder clips, transitions, filters, speed per clip), background video,
+the 12 canvas templates and 9 procedural backgrounds, word-highlight / neon / glitch / scrolling lyric styles,
+and 9:16 / 16:9 / 1:1 / 4:5 formats. They depend on the browser's canvas + WebCodecs pipeline; on Android the
+equivalent needs a frame-by-frame renderer, which is planned work rather than a quick port.
+
+## Build and test
     cd mobile
     flutter pub get
     flutter analyze
-    flutter test
+    flutter test          # sync fixtures, formats, vocal model + onset, export, UI flows (fake clock)
     flutter build apk --debug
 
-## Important rendering and licensing notes
-The renderer uses FFmpegKit with GPL components. Any distributed binary must satisfy the package's GPL-3.0 obligations, including required license notices and corresponding source availability. Confirm licensing before distributing or publishing the APK.
-
-The first video renderer uses portrait 1080x1920, 30 fps, animated background filters, ASS captions and AAC audio. Device performance and codec availability vary. The initial build stores output in app-private storage; an export-to-Gallery workflow and render progress/cancellation are follow-up work.
-
-Projects and copied songs are stored on the device. Clearing app data or uninstalling removes them. There is no account or cloud backend.
+## Licensing
+The renderer uses FFmpegKit full-gpl (GPL-3.0): distributed binaries must meet GPL obligations. The vocal model
+is derived from YAMNet (Apache-2.0, `assets/models/NOTICE.md`). Fonts are SIL OFL 1.1 (`assets/fonts/OFL-*.txt`).

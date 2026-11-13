@@ -21,6 +21,18 @@ video and pick an animated template. No login, no server, no upload, no internet
 - **Storage** — projects and imported media are saved automatically in the browser's IndexedDB on the
   device.
 
+## Lyric synchronization
+
+- **Lyrics never appear during an instrumental intro by accident.** Pasted lyrics stay *untimed* until you set
+  when the singer starts or sync the lines; untimed lines are hidden, never spread over the song from 0:00.
+- **Manual:** *Tap when singer starts* plays from the beginning; your first tap is the vocal start and the first
+  lyric, every further tap times the next line. Nudge the start by ±0.1 s / ±0.5 s, preview it, reset and redo.
+- **Automatic:** *Detect* analyses the song on this device (YAMNet voice classes, see `docs/VOCAL_DETECTION.md`)
+  and proposes a time with a confidence level. Listen, use it, pick another guess or dismiss — it is never
+  applied on its own.
+- One timing model for preview, timeline, SRT and the exported video (`docs/SYNC_SPEC.md`, integer
+  milliseconds). The same rules are implemented for Android and checked with the same fixtures (`spec/`).
+
 ## Run it
 
     npm start            # or: python3 -m http.server 8080
@@ -32,6 +44,7 @@ Home screen"). Service workers need `localhost` or HTTPS.
 There is no build step: `index.html`, `styles.css`, `js/`, `vendor/` and `fonts/` are the app.
 
     npm run check        # verifies all modules parse, the offline cache list is complete, no remote URLs
+    npm test             # shared sync fixtures, LRC/SRT, vocal model numerics and onset rule
 
 ## Android APK
 
@@ -40,7 +53,8 @@ and uploads a debug APK as a build artifact (run it from the Actions tab, or pus
 inside the APK, so it opens without internet. Exported videos are written to `Documents/LyricsStudio/`.
 This APK pipeline has not been run on a device yet — test it on a phone before relying on it.
 
-`mobile/` contains an earlier native Flutter prototype with its own workflow; it is separate from this app.
+`mobile/` is the native Flutter Android app (see `mobile/README.md`). It shares the sync model, lyric formats and
+vocal detector rules with this app and is built by its own workflow (*Build native LYRICS Android APK*).
 
 ## Shortcuts
 
@@ -58,5 +72,6 @@ Ctrl+D duplicate · ←/→ step a frame (Shift: one second) · Ctrl+scroll zoom
 ## Third-party files (bundled, no network use)
 
 - `vendor/mediabunny.min.mjs` — Mediabunny (MPL-2.0), used for muxing/encoding. Licence in `vendor/`.
+- `models/vocal-yamnet-int8.bin` — derived from Google's YAMNet (Apache-2.0); see `models/NOTICE.md`.
 - `fonts/` — Inter, Poppins, Anton, Bebas Neue, Space Grotesk, Playfair Display, Pacifico (SIL Open Font
   License 1.1), from the Fontsource packages.
